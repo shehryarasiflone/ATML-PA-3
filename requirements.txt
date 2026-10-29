@@ -1,0 +1,14 @@
+# torch is NOT listed: use the CUDA build preinstalled on Kaggle.
+# Exact installed versions are recorded per run by scripts/env_check.py (pip_freeze.txt).
+transformers>=4.51.0      # Qwen3 support
+peft>=0.13.0
+accelerate>=0.34.0
+datasets>=2.20.0
+lm_eval>=0.4.5
+math-verify>=0.7.0
+pyyaml
+pandas
+pyarrow
+scipy
+matplotlib
+tqdm

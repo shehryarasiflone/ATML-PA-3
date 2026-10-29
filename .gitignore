@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+outputs/
+checkpoints/
+data/
+*.pt
+*.pth
+*.bin
+*.safetensors
+*.parquet
+*.zip
+*.tar
+*.npy
+*.npz
