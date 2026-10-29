@@ -27,8 +27,8 @@ class LoRALinear(nn.Module):
     def set_protection(self, k: int):
         with torch.autocast("cuda", enabled=False):
             U, _, Vh = torch.linalg.svd(self.base.weight.float(), full_matrices=False)
-        self.U = U[:, :k].contiguous()
-        self.V = Vh[:k].T.contiguous()
+        self.U = U[:, :k].contiguous()                    # dout x k
+        self.V = Vh[:k].T.contiguous()                    # din  x k
 
     def factors(self):
         """Effective (projected) factors. Projection done in FP32, never as dense matrices."""
@@ -80,7 +80,8 @@ def export_adapters(model, out_dir) -> dict:
         if m.U is not None:
             A, B = m.factors()
             entry["A_proj"], entry["B_proj"] = A.cpu(), B.cpu()
-            resid.append(max(float((m.U.T @ B).abs().max()), float((A @ m.V).abs().max())))
+            resid.append(max(float((m.U.T @ B).norm() / (B.norm() + 1e-12)),
+                             float((A @ m.V).norm() / (A.norm() + 1e-12))))
         out[name] = entry
     torch.save(out, out_dir / "adapters.pt")
-    return {"max_projection_residual": max(resid)} if resid else {}
+    return {"max_relative_projection_residual": max(resid)} if resid else {}
