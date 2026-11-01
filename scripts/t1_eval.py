@@ -2,6 +2,7 @@ import argparse
 import gc
 import json
 import os
+import shutil
 import sys
 import time
 from pathlib import Path
@@ -20,7 +21,8 @@ from transformers import AutoTokenizer
 import lm_eval
 from lm_eval.models.huggingface import HFLM
  
-from src.common.utils import REPO_ROOT, RESULTS_DIR, SEED, load_json, save_json, set_seed
+from src.common.utils import (REPO_ROOT, RESULTS_DIR, SEED, input_dirs, load_json,
+                              save_json, set_seed)
 from src.task1.conditions import CONDITIONS, load_condition, load_unmerged
 from src.task1.data import MODEL
  
@@ -71,6 +73,19 @@ class SafeHFLM(HFLM):
             parts = [torch.nn.functional.pad(p, (0, width - p.shape[1]), value=pad)
                      for p in parts]
             return torch.cat(parts, 0)
+ 
+ 
+def restore_previous(out, sub, cond):
+    """Copy finished stage files from an earlier eval notebook attached as input,
+    so a rerun only does the stages that are still missing."""
+    for d in input_dirs():
+        for hit in d.rglob(cond):
+            if (hit.is_dir() and hit.parent.name == sub
+                    and hit.parent.parent.name == "task1"):
+                for f in hit.iterdir():
+                    if f.is_file() and not (out / f.name).exists():
+                        shutil.copy2(f, out / f.name)
+                        print(f"  restored {f.name} from {hit}", flush=True)
  
  
 def merge_check(cond, run, merged, tok, out):
@@ -195,7 +210,9 @@ def main():
     ap.add_argument("--cond", nargs="+", required=True, choices=CONDITIONS)
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--gen_batch", type=int, default=48)
-    ap.add_argument("--mc_batch", type=int, default=64)
+    # "auto:8": lm_eval finds the largest batch that fits the longest remaining requests,
+    # re-checking 8 times as lengths shrink (long BoolQ passages OOM at a fixed 64).
+    ap.add_argument("--mc_batch", type=str, default="auto:8")
     args = ap.parse_args()
     tok = AutoTokenizer.from_pretrained(MODEL)
  
@@ -204,6 +221,7 @@ def main():
         sub = "eval_smoke" if args.limit else "eval"
         out = RESULTS_DIR / "task1" / sub / cond
         out.mkdir(parents=True, exist_ok=True)
+        restore_previous(out, sub, cond)
         timing = load_json(out / "timing.json") if (out / "timing.json").exists() else {}
         print(f"\n===== {cond} =====", flush=True)
         set_seed(SEED)
@@ -225,7 +243,8 @@ def main():
             print("GSM8K already done, skipping", flush=True)
  
         if not (out / "mc_scores.json").exists():
-            lm = HFLM(pretrained=model, tokenizer=tok, batch_size=args.mc_batch)
+            lm = HFLM(pretrained=model, tokenizer=tok, batch_size=args.mc_batch,
+                      max_batch_size=64)
             run_mc(lm, out, args.limit)
         else:
             print("MC already done, skipping", flush=True)
