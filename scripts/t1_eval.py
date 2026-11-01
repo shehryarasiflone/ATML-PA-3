@@ -1,10 +1,16 @@
 import argparse
+import gc
 import json
+import os
 import sys
 import time
 from pathlib import Path
  
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+ 
+# The KV cache grows by one token per step; without this the allocator fragments and
+# reserves far more than the live cache (the cause of the first baseline OOM).
+os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
  
 import torch
 import yaml
@@ -31,19 +37,25 @@ class SafeHFLM(HFLM):
  
     A batch's KV cache grows to (batch x (prompt + 1,024)) tokens whenever one response
     runs to the cap. With the longest prompts at batch 64 this can exceed a T4's memory.
-    Splitting only the failing batch keeps batch 64 everywhere else. Greedy decoding,
+    Splitting only the failing batch keeps the full batch size everywhere else. Greedy decoding,
     so outputs do not depend on the split except for FP16 padding-level rounding.
     """
     oom_splits = 0
  
     def _model_generate(self, context, max_length, stop, **gen_kwargs):
+        oom = False
         try:
             return super()._model_generate(context, max_length, stop, **dict(gen_kwargs))
         except torch.cuda.OutOfMemoryError:
-            torch.cuda.empty_cache()
             n = context.shape[0]
             if n == 1:
                 raise
+            oom = True
+        # Retry OUTSIDE the except block: inside it, the exception's traceback still
+        # references the failed attempt's KV cache, so that memory cannot be freed.
+        if oom:
+            gc.collect()
+            torch.cuda.empty_cache()
             SafeHFLM.oom_splits += 1
             print(f"  OOM at generation batch {n}: splitting into 2 x {n // 2}", flush=True)
             h = n // 2
@@ -182,7 +194,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--cond", nargs="+", required=True, choices=CONDITIONS)
     ap.add_argument("--limit", type=int, default=None)
-    ap.add_argument("--gen_batch", type=int, default=64)
+    ap.add_argument("--gen_batch", type=int, default=48)
     ap.add_argument("--mc_batch", type=int, default=64)
     args = ap.parse_args()
     tok = AutoTokenizer.from_pretrained(MODEL)
