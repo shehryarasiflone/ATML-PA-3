@@ -26,6 +26,41 @@ QUAL_FILE = REPO_ROOT / "configs" / "task1" / "first_plot_questions.yaml"
 QUAL_MAX_NEW = 512
  
  
+class SafeHFLM(HFLM):
+    """HFLM whose generation splits a batch in half on CUDA out-of-memory.
+ 
+    A batch's KV cache grows to (batch x (prompt + 1,024)) tokens whenever one response
+    runs to the cap. With the longest prompts at batch 64 this can exceed a T4's memory.
+    Splitting only the failing batch keeps batch 64 everywhere else. Greedy decoding,
+    so outputs do not depend on the split except for FP16 padding-level rounding.
+    """
+    oom_splits = 0
+ 
+    def _model_generate(self, context, max_length, stop, **gen_kwargs):
+        try:
+            return super()._model_generate(context, max_length, stop, **dict(gen_kwargs))
+        except torch.cuda.OutOfMemoryError:
+            torch.cuda.empty_cache()
+            n = context.shape[0]
+            if n == 1:
+                raise
+            SafeHFLM.oom_splits += 1
+            print(f"  OOM at generation batch {n}: splitting into 2 x {n // 2}", flush=True)
+            h = n // 2
+            attn = gen_kwargs.pop("attention_mask", None)
+            parts = []
+            for sl in (slice(0, h), slice(h, n)):
+                kw = dict(gen_kwargs)
+                if attn is not None:
+                    kw["attention_mask"] = attn[sl]
+                parts.append(self._model_generate(context[sl], max_length, stop, **kw))
+            width = max(p.shape[1] for p in parts)
+            pad = self.tokenizer.pad_token_id
+            parts = [torch.nn.functional.pad(p, (0, width - p.shape[1]), value=pad)
+                     for p in parts]
+            return torch.cat(parts, 0)
+ 
+ 
 def merge_check(cond, run, merged, tok, out):
     """Same 8 prompts through merged FP16 weights and the unmerged adapter model."""
     qs = load_dataset("openai/gsm8k", "main", split="test")["question"][:8]
@@ -169,9 +204,11 @@ def main():
             merge_check(cond, run, model, tok, out)
  
         if not (out / "gsm8k_scores.json").exists():
-            lm = HFLM(pretrained=model, tokenizer=tok, batch_size=args.gen_batch,
-                      enable_thinking=False)
+            lm = SafeHFLM(pretrained=model, tokenizer=tok, batch_size=args.gen_batch,
+                          enable_thinking=False)
+            SafeHFLM.oom_splits = 0
             run_gsm8k(lm, tok, out, args.limit)
+            timing["gsm8k_oom_splits"] = SafeHFLM.oom_splits
         else:
             print("GSM8K already done, skipping", flush=True)
  
