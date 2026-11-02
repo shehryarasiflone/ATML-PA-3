@@ -1,0 +1,8 @@
+{
+  "condition": "lora4",
+  "prompts": 8,
+  "positions": 558,
+  "max_abs_logit_diff": 0.5234375,
+  "mean_abs_logit_diff": 0.006555658997133321,
+  "top1_agreement": 1.0
+}

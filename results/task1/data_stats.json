@@ -1,0 +1,21 @@
+{
+  "n_kept": 40000,
+  "last_source_index_scanned": 40001,
+  "excluded": {
+    "longer_than_2048": 2
+  },
+  "total_tokens": {
+    "mean": 247.7,
+    "median": 219.0,
+    "p90": 393.0,
+    "p99": 681.0,
+    "max": 1941
+  },
+  "response_tokens": {
+    "mean": 177.5,
+    "median": 152.0,
+    "sum": 7099389
+  },
+  "n_over_512": 1242,
+  "n_over_1024": 64
+}

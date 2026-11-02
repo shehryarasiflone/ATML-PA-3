@@ -1,0 +1,8 @@
+{
+  "condition": "oplora16",
+  "prompts": 8,
+  "positions": 558,
+  "max_abs_logit_diff": 0.140625,
+  "mean_abs_logit_diff": 0.0062572628328089325,
+  "top1_agreement": 0.9982078853046595
+}

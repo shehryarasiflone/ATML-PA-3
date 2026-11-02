@@ -1,0 +1,25 @@
+{
+  "method": "full_ft",
+  "updates": 1250,
+  "train_time_h": 2.303,
+  "peak_gpu_gb": 12.802,
+  "trainable_params": 596049920,
+  "skipped_updates": 0,
+  "final_sft_loss": 0.1662963756845017,
+  "overhead": {
+    "reference_storage_mb": 1136.9,
+    "reference_dtypes": [
+      "torch.bfloat16"
+    ],
+    "reference_setup_s": 0.12,
+    "resume_checkpoint_mb": 6821.81,
+    "export_time_s_625": 1.72,
+    "export_mb_625": 1183.81,
+    "export_time_s_1250": 1.61,
+    "export_mb_1250": 1183.81
+  },
+  "displacement": {
+    "625": 10.013862836587778,
+    "1250": 10.654244370535261
+  }
+}

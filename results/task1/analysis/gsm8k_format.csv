@@ -1,0 +1,8 @@
+condition,flexible_em,strict_em,final_answer_acc,extraction_failures,extracted_$$,pct_boxed,pct_the_answer_is,pct_####,truncated,truncated_correct,mean_response_tokens
+Baseline,43.59,0.0,59.97,216,327,40.3,0.1,0.6,11,0,225.0
+Full FT (mid),57.16,0.0,57.16,0,0,0.9,98.9,97.7,14,1,144.0
+Full FT,63.68,0.0,63.68,0,0,0.7,99.0,98.3,13,0,140.8
+Full FT + L2-SP,65.81,0.0,65.81,0,0,0.6,99.5,98.6,6,0,138.0
+LoRA-4,59.74,0.0,59.74,0,0,0.5,99.0,98.0,12,0,142.6
+LoRA-16,61.49,0.0,61.49,0,0,0.6,99.3,98.6,8,0,139.1
+OPLoRA-16,61.03,0.0,61.03,0,0,0.5,99.2,98.3,9,0,139.3

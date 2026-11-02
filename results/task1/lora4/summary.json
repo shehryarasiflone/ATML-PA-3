@@ -1,0 +1,15 @@
+{
+  "method": "lora4",
+  "updates": 1250,
+  "train_time_h": 2.607,
+  "peak_gpu_gb": 3.142,
+  "trainable_params": 2523136,
+  "skipped_updates": 0,
+  "final_sft_loss": 0.19398239755761854,
+  "overhead": {
+    "adapter_modules": 196,
+    "resume_checkpoint_mb": 29.39,
+    "export_time_s_1250": 0.04,
+    "export_mb_1250": 9.74
+  }
+}

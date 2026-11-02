@@ -1,0 +1,15 @@
+{
+  "metrics": {
+    "name": "gsm8k_cot",
+    "alias": "gsm8k_cot",
+    "sample_len": 1319,
+    "exact_match,strict-match": 0.0,
+    "exact_match_stderr,strict-match": 0.0,
+    "exact_match,flexible-extract": 0.4359363153904473,
+    "exact_match_stderr,flexible-extract": 0.013658968058849159
+  },
+  "n": 1319,
+  "truncated_rate": 0.008339651250947688,
+  "mean_response_tokens": 224.9962092494314,
+  "eval_time_s": 1998.1
+}

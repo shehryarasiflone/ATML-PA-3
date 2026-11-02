@@ -1,0 +1,8 @@
+,truncated,json_valid,math_markers,repetition,mean_tokens
+Baseline,1,8,0,0,100.625
+Full FT (mid),6,3,11,5,212.79166666666666
+Full FT,7,3,13,4,223.875
+Full FT + L2-SP,3,2,12,2,167.625
+LoRA-4,3,3,0,3,121.04166666666667
+LoRA-16,2,3,6,2,140.91666666666666
+OPLoRA-16,4,2,7,4,167.875

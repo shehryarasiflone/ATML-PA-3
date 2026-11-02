@@ -1,0 +1,23 @@
+{
+  "method": "l2sp",
+  "updates": 1250,
+  "train_time_h": 2.417,
+  "peak_gpu_gb": 12.802,
+  "trainable_params": 596049920,
+  "skipped_updates": 0,
+  "final_sft_loss": 0.16586883797133264,
+  "overhead": {
+    "reference_storage_mb": 1136.9,
+    "reference_dtypes": [
+      "torch.bfloat16"
+    ],
+    "reference_setup_s": 0.17,
+    "resume_checkpoint_mb": 6821.81,
+    "export_time_s_1250": 1.66,
+    "export_mb_1250": 1183.81
+  },
+  "displacement": {
+    "625": 6.43816427141614,
+    "1250": 6.272565671940368
+  }
+}

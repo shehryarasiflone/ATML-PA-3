@@ -1,0 +1,6 @@
+method,trainable_params,trainable_pct,train_time_h,sec_per_update,peak_gpu_gb,resume_ckpt_mb,inference_export_mb,skipped_updates,method_overhead
+Full FT,596049920,100.0,2.303,6.63,12.8,6822,1184,0,reference_storage_mb=1136.9; reference_setup_s=0.12
+Full FT + L2-SP,596049920,100.0,2.417,6.96,12.8,6822,1184,0,reference_storage_mb=1136.9; reference_setup_s=0.17
+LoRA-4,2523136,0.423,2.607,7.51,3.14,29,10,0,
+LoRA-16,10092544,1.693,2.648,7.63,3.25,116,39,0,
+OPLoRA-16,10092544,1.693,3.143,9.05,3.56,116,77,0,basis_preprocessing_s=30.24; basis_storage_mb=308.0; max_relative_projection_residual=0.00018841150449588895

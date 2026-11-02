@@ -1,0 +1,18 @@
+{
+  "method": "oplora16",
+  "updates": 1250,
+  "train_time_h": 3.143,
+  "peak_gpu_gb": 3.56,
+  "trainable_params": 10092544,
+  "skipped_updates": 0,
+  "final_sft_loss": 0.17928216627196786,
+  "overhead": {
+    "adapter_modules": 196,
+    "basis_preprocessing_s": 30.24,
+    "basis_storage_mb": 308.0,
+    "resume_checkpoint_mb": 116.02,
+    "max_relative_projection_residual": 0.00018841150449588895,
+    "export_time_s_1250": 0.25,
+    "export_mb_1250": 77.21
+  }
+}

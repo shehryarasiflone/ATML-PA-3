@@ -1,0 +1,28 @@
+{
+  "hellaswag": {
+    "name": "hellaswag",
+    "alias": "hellaswag",
+    "sample_len": 10042,
+    "acc,none": 0.37562238597888864,
+    "acc_stderr,none": 0.0048329345291214295,
+    "acc_norm,none": 0.4727145986855208,
+    "acc_norm_stderr,none": 0.004982346155910865
+  },
+  "boolq": {
+    "name": "boolq",
+    "alias": "boolq",
+    "sample_len": 3270,
+    "acc,none": 0.6443425076452599,
+    "acc_stderr,none": 0.00837272663997743
+  },
+  "arc_easy": {
+    "name": "arc_easy",
+    "alias": "arc_easy",
+    "sample_len": 2376,
+    "acc,none": 0.6081649831649831,
+    "acc_stderr,none": 0.010016835016835016,
+    "acc_norm,none": 0.5597643097643098,
+    "acc_norm_stderr,none": 0.010186228624515719
+  },
+  "eval_time_s": 791.5
+}
