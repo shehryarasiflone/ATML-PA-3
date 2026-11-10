@@ -282,13 +282,19 @@ class Run:
                     with torch.autocast("cuda", dtype=torch.float16):
                         nll = vlm.per_example_nll(self.llm, self.conn, self.P, b_)
                     scaler.scale(nll.sum() / EFF).backward()
-                    total += float(nll.sum())
+                    total += float(nll.detach().sum())
                 scaler.unscale_(opt)
                 conn_gn = float(torch.norm(torch.stack([p.grad.norm() for p in self.conn.parameters()
                                                         if p.grad is not None])))
                 if uu == 0:
-                    assert conn_gn > 0, "connector received no gradient"
+                    # Flow check: some connector gradient entry is non-zero. The first step
+                    # often overflows in FP16 (inf/NaN norm, update skipped by the scaler);
+                    # that still proves gradient reached the connector.
+                    flows = any(p.grad is not None and bool((p.grad != 0).any())
+                                for p in self.conn.parameters())
+                    assert flows, "connector received no gradient"
                     self.checks["first_update_connector_grad_norm"] = conn_gn
+                    self.checks["connector_gradient_flows"] = flows
                     save_json(self.checks, self.res / "checks.json")
                 gn = float(torch.nn.utils.clip_grad_norm_(self.trainable(), 1.0))
                 lrs = [g["lr"] for g in opt.param_groups]
