@@ -11,6 +11,7 @@ Outputs (results/task2/ or results/task2_smoke/):
 import argparse
 import json
 import random
+import shutil
 import sys
 import time
 from pathlib import Path
@@ -55,6 +56,9 @@ class Run:
         self.total = sum(self.stages.values())
         self.res = RESULTS_DIR / ("task2_smoke" if smoke else "task2")
         self.run_dir = work_dir() / "task2" / ("run_smoke" if smoke else "run_main")
+        if smoke:                       # a smoke test always starts from scratch
+            shutil.rmtree(self.run_dir, ignore_errors=True)
+            shutil.rmtree(self.res, ignore_errors=True)
         self.res.mkdir(parents=True, exist_ok=True)
         self.run_dir.mkdir(parents=True, exist_ok=True)
         self.tok = AutoTokenizer.from_pretrained(vlm.LLM)
@@ -229,7 +233,7 @@ class Run:
         if ck is not None:
             st = load_checkpoint(ck)
             u, extra = st["step"], st["extra"]
-            if u >= self.B[1][1]:
+            if any(".lora_" in k for k in st["model"]):     # checkpoint saved after stage 1
                 self.enable_lora(2)
             self.load_state(st["model"])
             sampler.rng.setstate(extra["sampler_rng"])
