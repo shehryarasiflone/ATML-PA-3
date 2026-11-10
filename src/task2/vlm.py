@@ -280,7 +280,10 @@ class Sampler:
         self.rng = random.Random(seed + 1)
 
     def stage1(self, update, n):
-        idx = self.stage1_order[update * n:(update + 1) * n]
+        # Full run: 2,250 x 16 = 36,000 = exactly two passes. The modulo only matters for the
+        # smoke test, whose small caption subset is shorter than its stage 1.
+        o = self.stage1_order
+        idx = [o[j % len(o)] for j in range(update * n, (update + 1) * n)]
         return [self.captions[i] for i in idx], {"caption": len(idx)}
 
     def draw(self, stage, n_examples):
@@ -294,5 +297,5 @@ class Sampler:
             else:
                 pool = self.pools[src]
                 pid = self.rng.randrange(len(pool) // 2)
-                exs += pool[2 * pid:2 * pid + 2]
+                exs += pool[2 * pid:2 * pid + 2]           # both members of one pair
         return exs, counts
