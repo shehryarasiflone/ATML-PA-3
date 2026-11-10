@@ -50,7 +50,7 @@ def bounds(stages):
 class Run:
     def __init__(self, smoke):
         self.smoke = smoke
-        self.stages = {1: 4, 2: 4, 3: 4} if smoke else STAGES
+        self.stages = {1: 20, 2: 8, 3: 8} if smoke else STAGES
         self.B = bounds(self.stages)
         self.total = sum(self.stages.values())
         self.res = RESULTS_DIR / ("task2_smoke" if smoke else "task2")
@@ -196,9 +196,9 @@ class Run:
             return [None] * len(exs)
         return [mapping[(e["pair_id"], e["slot"])] for e in exs]
 
-    def dev_eval(self, upd):
+    def dev_eval(self, upd, stage=None):
         t0 = time.time()
-        row = {"update": upd, "stage": self.stage_of(upd),
+        row = {"update": upd, "stage": stage if stage is not None else self.stage_of(upd),
                "caption_loss": float(np.mean(self.nll(self.cap_dev, None, True)))}
         for suite, exs in self.dev.items():
             nl = {c: self.nll(exs, self.image_keys(exs, c), False) for c in ("correct", "swap", "no_image")}
@@ -248,6 +248,12 @@ class Run:
         save_json(self.checks, self.res / "checks.json")
         if u == 0:
             self.dev_eval(0)
+        # One dynamic scaler for the whole run so the learned scale carries across stages.
+        # Start at 2^10 instead of 2^16: at 2^16 the frozen FP16 backbone's activation
+        # gradients overflow and every early update is skipped.
+        scaler = torch.amp.GradScaler("cuda", init_scale=2.0 ** 10)
+        if ck is not None:
+            scaler.load_state_dict(st["scaler"])
 
         for s in (1, 2, 3):
             a, b = self.B[s]
@@ -257,11 +263,9 @@ class Run:
                 n_mod = self.enable_lora(s)
                 print(f"stage {s}: LoRA on {n_mod} modules", flush=True)
             opt, sched = self.make_opt(s)
-            scaler = torch.amp.GradScaler("cuda")
             if ck is not None and a < u < b and extra.get("stage") == s:
                 opt.load_state_dict(st["optimizer"])
                 sched.load_state_dict(st["scheduler"])
-                scaler.load_state_dict(st["scaler"])
             info = self.stage_info.get(str(s), {"train_s": 0.0, "peak_gb": 0.0})
             info["trainable_params"] = count_params(self.conn) + (count_params(self.llm) if s >= 2 else 0)
             info["trainable_connector"] = count_params(self.conn)
@@ -311,11 +315,14 @@ class Run:
                        "skipped": scaler.get_scale() < sc, **{f"n_{k}": v for k, v in cnt.items()}}
                 self.rows.append(row)
                 self.train_logger.log(**row)
+                if row["skipped"] and sc < 1e-3:
+                    raise RuntimeError("non-finite gradients even at loss scale < 1e-3: real NaN")
                 if upd % 25 == 0 or self.smoke:
                     print(f"[stage {s}] upd {upd}/{self.total} loss {row['loss']:.4f} gn {gn:.2f} "
+                          f"scale {sc:.0f}{' SKIPPED' if row['skipped'] else ''} "
                           f"{info['train_s'] / max(1, upd - a):.2f}s/upd peak {gpu_peak_gb():.1f}GB", flush=True)
                 if upd % DEV_EVERY == 0 or upd in (self.B[1][1], self.B[2][1], self.B[3][1]):
-                    self.dev_eval(upd)
+                    self.dev_eval(upd, s)
                 info["peak_gb"] = max(info["peak_gb"], gpu_peak_gb())
                 self.stage_info[str(s)] = info
                 if upd % (4 if self.smoke else CKPT_EVERY) == 0 or upd == b:
@@ -329,6 +336,8 @@ class Run:
             self.stage_info[str(s)] = info
             u = b
         save_json({"stages": self.stage_info, "mixture_counts": self.mix,
+                   "skipped_updates": {str(k): sum(r["skipped"] for r in self.rows if r["stage"] == k)
+                                       for k in (1, 2, 3)},
                    "updates": self.stages, "lr": LR, "micro": MICRO, "accum": ACCUM},
                   self.res / "stages.json")
 
@@ -355,6 +364,7 @@ class Run:
             self.enable_lora(2)
             self.load_state(torch.load(self.run_dir / "stage3_weights.pt"))
         self.llm.eval(), self.conn.eval()
+        self.llm.gradient_checkpointing_disable()        # allows the KV cache in generation
         self.llm.config.use_cache = True
         out_dir = self.res / "final"
         out_dir.mkdir(exist_ok=True)
