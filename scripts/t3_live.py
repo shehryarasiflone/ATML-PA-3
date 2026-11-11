@@ -1,5 +1,6 @@
 import argparse
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -46,7 +47,15 @@ def make_splits():
     out["rule"] = ("sort the 1,000 question IDs lexicographically, permute with "
                    "numpy default_rng(6304).permutation; first 200 = development, rest = "
                    "held-out evaluation; live subset = first 50 MATH evaluation IDs")
-    save_json(out, SPLITS_DIR / "task3_splits.json")
+    path = SPLITS_DIR / "task3_splits.json"
+    if not path.exists():          # several shards may start together: write once, never race
+        try:
+            tmp = path.with_suffix(f".{os.getpid()}.tmp")
+            tmp.parent.mkdir(parents=True, exist_ok=True)
+            tmp.write_text(json.dumps(out, indent=2))
+            os.replace(tmp, path)
+        except OSError:
+            pass
     return out
  
  
